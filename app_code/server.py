@@ -6,7 +6,9 @@ from typing import Any
 
 
 class Server(threading.Thread):
-    def __init__(self, server_id: str, servers: dict[int, Any]):
+    def __init__(
+        self, server_id: str, servers: dict[int, Any], sim_done: threading.Event
+    ):
         super().__init__()
         self.server_id: str = server_id
         self.servers: dict[str, Server] = servers
@@ -14,6 +16,7 @@ class Server(threading.Thread):
         self.running: bool = True
         self.lock = threading.Lock()
         self.current_message: list[int] = None
+        self.sim_done: threading.Event = sim_done
 
     def send_data(self, path: list[str], data: list[int]) -> None:
         if not path:
@@ -24,10 +27,10 @@ class Server(threading.Thread):
         print(
             f"[Server {self.server_id}] Sending to {next_hop}: {self.current_message}"
         )
-        delay = random.randint(6, 9)
+        delay: int = random.randint(6, 9)
         time.sleep(delay)
         with self.lock:
-            final_message = self.current_message.copy()
+            final_message: list[int] = self.current_message.copy()
             self.current_message = None
         self.servers[next_hop].inbox.put((self.server_id, final_message, path[1:]))
 
@@ -35,10 +38,10 @@ class Server(threading.Thread):
         with self.lock:
             if self.current_message is None:
                 print(
-                    f"[Server {self.server_id}] not currently sending - cannot flip bit."
+                    f"[Server {self.server_id}] Not currently sending - cannot flip bit."
                 )
                 return
-            bit_position = random.randint(0, len(self.current_message) - 1)
+            bit_position: int = random.randint(0, len(self.current_message) - 1)
             self.current_message[bit_position] = (
                 0 if self.current_message[bit_position] == 1 else 1
             )
@@ -57,6 +60,7 @@ class Server(threading.Thread):
                     print(
                         f"[Server {self.server_id}] Final destination reached with data: {data}"
                     )
+                    self.sim_done.set()
             except queue.Empty:
                 continue
 
