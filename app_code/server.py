@@ -1,25 +1,23 @@
 import threading
 import queue
 import time
+from typing import Any
 
 
 class Server(threading.Thread):
-    def __init__(self, server_id, servers):
+    def __init__(self, server_id: str, servers: dict[int, Any]):
         super().__init__()
-        self.server_id: int = server_id
-        self.servers: dict[int, Server] = servers
+        self.server_id: str = server_id
+        self.servers: dict[str, Server] = servers
         self.inbox: queue.Queue = queue.Queue()
         self.running: bool = True
 
-    def send_data(self, path: list[int], data: list[int]) -> None:
+    def send_data(self, path: list[str], data: list[int]) -> None:
         if not path:
             return
-        next_hop: int = path[0]
-        if next_hop in self.servers:
-            print(f"[Server {self.server_id}] Sending to {next_hop}: {data}")
-            self.servers[next_hop].inbox.put((self.server_id, data, path[1:]))
-        else:
-            print(f"[Server {self.server_id}] Error: Server {next_hop} not found!")
+        next_hop: str = path[0]
+        print(f"[Server {self.server_id}] Sending to {next_hop}: {data}")
+        self.servers[next_hop].inbox.put((self.server_id, data, path[1:]))
 
     def run(self):
         while self.running:
