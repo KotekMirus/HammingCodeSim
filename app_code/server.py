@@ -1,6 +1,7 @@
 import threading
 import queue
 import time
+import random
 from typing import Any
 
 
@@ -11,13 +12,39 @@ class Server(threading.Thread):
         self.servers: dict[str, Server] = servers
         self.inbox: queue.Queue = queue.Queue()
         self.running: bool = True
+        self.lock = threading.Lock()
+        self.current_message: list[int] = None
 
     def send_data(self, path: list[str], data: list[int]) -> None:
         if not path:
             return
         next_hop: str = path[0]
-        print(f"[Server {self.server_id}] Sending to {next_hop}: {data}")
-        self.servers[next_hop].inbox.put((self.server_id, data, path[1:]))
+        with self.lock:
+            self.current_message = data.copy()
+        print(
+            f"[Server {self.server_id}] Sending to {next_hop}: {self.current_message}"
+        )
+        delay = random.randint(6, 9)
+        time.sleep(delay)
+        with self.lock:
+            final_message = self.current_message.copy()
+            self.current_message = None
+        self.servers[next_hop].inbox.put((self.server_id, final_message, path[1:]))
+
+    def bitflip(self) -> None:
+        with self.lock:
+            if self.current_message is None:
+                print(
+                    f"[Server {self.server_id}] not currently sending - cannot flip bit."
+                )
+                return
+            bit_position = random.randint(0, len(self.current_message) - 1)
+            self.current_message[bit_position] = (
+                0 if self.current_message[bit_position] == 1 else 1
+            )
+            print(
+                f"[Server {self.server_id}] Bit flipped at position {bit_position}. New message: {self.current_message}"
+            )
 
     def run(self):
         while self.running:

@@ -1,6 +1,7 @@
 import server
 from collections import deque
 from typing import Any
+import threading
 
 
 def load_graph(filename: str) -> dict[str, list[str]]:
@@ -33,7 +34,7 @@ def find_path(graph: dict[str, list[str]], start: str, goal: str) -> list[str]:
 
 
 def start_servers(servers_number: int) -> dict[str, server.Server]:
-    servers: dict[int, server.Server] = {}
+    servers: dict[str, server.Server] = {}
     for i in range(1, servers_number + 1):
         s = server.Server(str(i), servers)
         servers[str(i)] = s
@@ -54,6 +55,19 @@ def gather_sim_info() -> list[Any]:
     return [message, servers, path]
 
 
+def command_listener(servers):
+    while True:
+        user_input: str = input().strip().lower()
+        if user_input.startswith("bitflip"):
+            args: list[str] = user_input.split()
+            server_id: str = args[1]
+            if server_id in servers:
+                servers[server_id].bitflip()
+        elif user_input == "stop":
+            end_sim(servers)
+            break
+
+
 def end_sim(servers: dict[str, server.Server]) -> None:
     for s in servers.values():
         s.stop()
@@ -71,6 +85,7 @@ def run_sim(
 
 def main() -> None:
     sim_info: list[Any] = gather_sim_info()
+    threading.Thread(target=command_listener, args=(sim_info[1],), daemon=True).start()
     run_sim(sim_info[0], sim_info[1], sim_info[2])
 
 
