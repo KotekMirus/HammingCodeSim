@@ -1,6 +1,7 @@
 import server
 from collections import deque
 from typing import Any
+from pathlib import Path
 import threading
 
 
@@ -46,16 +47,25 @@ def start_servers(
 
 def gather_sim_info(sim_done: threading.Event) -> list[Any]:
     print("\nStart of gathering simulation info.\n")
-    input_message: str = input("Enter message like 01101001...: ").strip()
+    while True:
+        input_message: str = input("Enter message like 01101001...: ").strip()
+        if set(input_message) <= {"0", "1"}:
+            break
     message: list[int] = [int(bit) for bit in input_message]
-    graph_file_path: str = input("Enter graph file path: ")
-    starting_point: str = input("Enter starting server: ").strip()
-    ending_point: str = input("Enter ending server: ").strip()
+    while True:
+        graph_file_path: str = input("Enter graph file path: ")
+        if Path(graph_file_path).is_file():
+            break
     graph: dict[str, list[str]] = load_graph(graph_file_path)
-    path: list[str] = find_path(graph, starting_point, ending_point)
-    servers: dict[int, server.Server] = start_servers(
+    servers: dict[str, server.Server] = start_servers(
         max(map(int, graph.keys())), sim_done
     )
+    while True:
+        starting_point: str = input("Enter starting server: ").strip()
+        ending_point: str = input("Enter ending server: ").strip()
+        if starting_point in servers and ending_point in servers:
+            break
+    path: list[str] = find_path(graph, starting_point, ending_point)
     return [message, servers, path]
 
 
@@ -64,9 +74,15 @@ def command_listener(servers, sim_done: threading.Event):
         user_input: str = input().strip().lower()
         if user_input.startswith("bitflip"):
             args: list[str] = user_input.split()
-            server_id: str = args[1]
+            server_id: str = "0"
+            number_of_bits: int = 0
+            if len(args) == 2:
+                server_id = args[1]
+            elif len(args) == 3:
+                server_id = args[1]
+                number_of_bits = int(args[2])
             if server_id in servers:
-                servers[server_id].bitflip()
+                servers[server_id].bitflip(number_of_bits)
         elif user_input == "stop":
             sim_done.set()
             end_sim(servers)

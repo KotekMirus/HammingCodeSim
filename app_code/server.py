@@ -34,19 +34,25 @@ class Server(threading.Thread):
             self.current_message = None
         self.servers[next_hop].inbox.put((self.server_id, final_message, path[1:]))
 
-    def bitflip(self) -> None:
+    def bitflip(self, number_of_bits: int) -> None:
         with self.lock:
             if self.current_message is None:
                 print(
                     f"[Server {self.server_id}] Not currently sending - cannot flip bit."
                 )
                 return
-            bit_position: int = random.randint(0, len(self.current_message) - 1)
-            self.current_message[bit_position] = (
-                0 if self.current_message[bit_position] == 1 else 1
+            message_length: int = len(self.current_message)
+            if number_of_bits > message_length:
+                number_of_bits = message_length
+            bit_positions: list[int] = random.sample(
+                range(message_length), number_of_bits
             )
+            for position in bit_positions:
+                self.current_message[position] = (
+                    0 if self.current_message[position] == 1 else 1
+                )
             print(
-                f"[Server {self.server_id}] Bit flipped at position {bit_position}. New message: {self.current_message}"
+                f"[Server {self.server_id}] Flipped bits at positions {bit_positions}. New message: {self.current_message}"
             )
 
     def run(self):
