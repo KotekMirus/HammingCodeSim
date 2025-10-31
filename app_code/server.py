@@ -3,6 +3,7 @@ import queue
 import time
 import random
 from typing import Any
+from hamming import hamming_detect_and_fix
 
 
 class Server(threading.Thread):
@@ -16,6 +17,7 @@ class Server(threading.Thread):
         self.running: bool = True
         self.lock = threading.Lock()
         self.current_message: list[int] = None
+        self.final_message: list[int] = None
         self.sim_done: threading.Event = sim_done
 
     def send_data(self, path: list[str], data: list[int]) -> None:
@@ -55,14 +57,26 @@ class Server(threading.Thread):
                 f"[Server {self.server_id}] Flipped bits at positions {bit_positions}. New message: {self.current_message}"
             )
 
+    def get_final_message(self) -> list[str]:
+        return self.final_message
+
     def run(self):
         while self.running:
             try:
                 sender_id, data, remaining_path = self.inbox.get(timeout=0.5)
+                with self.lock:
+                    original_data: list[int] = data.copy()
                 print(f"[Server {self.server_id}] Received from {sender_id}: {data}")
+                data: list[int] = hamming_detect_and_fix(data)
+                if original_data != data:
+                    print(
+                        f"[Server {self.server_id}] Error in data detected and fixed. Fixed data {data}"
+                    )
                 if remaining_path:
                     self.send_data(remaining_path, data)
                 else:
+                    with self.lock:
+                        self.final_message = data.copy()
                     print(
                         f"[Server {self.server_id}] Final destination reached with data: {data}"
                     )

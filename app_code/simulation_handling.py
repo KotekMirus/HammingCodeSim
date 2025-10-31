@@ -2,6 +2,7 @@ import server
 from typing import Any
 from pathlib import Path
 from graph_handling import load_graph, find_path
+from hamming import hamming_encode, hamming_remove_parity_bits
 import threading
 
 
@@ -74,7 +75,16 @@ def run_sim(
     path: list[str],
     sim_done: threading.Event,
 ) -> None:
+    destination_server: str = path[-1]
+    print("\nMessage: ", message, "\n", sep="")
+    encoded_message = hamming_encode(message)
+    print("Encoded message:", encoded_message)
     print("\nStart of the simulation.\n")
-    servers[path[0]].send_data(path[1:], message)
+    servers[path[0]].send_data(path[1:], encoded_message)
     sim_done.wait()
+    final_message: list[int] = servers[destination_server].get_final_message()
+    final_message: list[int] = hamming_remove_parity_bits(final_message)
     end_sim(servers)
+    print("Original message:", message)
+    print("Final message:", final_message)
+    print("Message transfer success:", message == final_message)
