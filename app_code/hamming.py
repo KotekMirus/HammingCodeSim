@@ -15,7 +15,7 @@ def hamming_encode(data_bits: list[int]) -> list[int]:
         number_of_ones: int = 0
         for x in range(p, code_length, (p + 1) * 2):
             for y in range(p + 1):
-                if x + y >= code_length - 1:
+                if x + y > code_length - 1:
                     break
                 if code[x + y] == 1:
                     number_of_ones += 1
@@ -49,7 +49,7 @@ def hamming_detect_and_fix(code: list[int]) -> list[int]:
         number_of_ones: int = 0
         for x in range(p, code_length, (p + 1) * 2):
             for y in range(p + 1):
-                if x + y >= code_length - 1:
+                if x + y > code_length - 1:
                     break
                 if code[x + y] == 1:
                     number_of_ones += 1
