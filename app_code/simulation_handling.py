@@ -19,6 +19,8 @@ def start_servers(
 
 
 def gather_sim_info(sim_done: threading.Event) -> list[Any]:
+    tmp_folder_path: Path = Path("tmp")
+    tmp_folder_path.mkdir(exist_ok=True)
     if Path("tmp/message_log.txt").is_file():
         os.remove("tmp/message_log.txt")
     print("\nStart of gathering simulation info.\n")
