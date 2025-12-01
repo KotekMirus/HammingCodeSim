@@ -19,10 +19,15 @@ def start_servers(
 
 def gather_sim_info(sim_done: threading.Event) -> list[Any]:
     print("\nStart of gathering simulation info.\n")
-    while True:
-        input_message: str = input("Enter message like 01101001...: ").strip()
-        if set(input_message) <= {"0", "1"}:
-            break
+    message_type: str = input("Enter message type (B - binary, P - plaintext): ")
+    if message_type.upper() == "B":
+        while True:
+            input_message: str = input("Enter message like 01101001...: ").strip()
+            if set(input_message) <= {"0", "1"}:
+                break
+    else:
+        input_message: str = input("Enter message like Hello Janek...: ")
+        input_message = "".join(format(ord(c), "08b") for c in input_message)
     message: list[int] = [int(bit) for bit in input_message]
     while True:
         graph_file_path: str = input("Enter graph file path: ")
