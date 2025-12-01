@@ -66,6 +66,10 @@ class Server(threading.Thread):
                 sender_id, data, remaining_path = self.inbox.get(timeout=0.5)
                 with self.lock:
                     original_data: list[int] = data.copy()
+                    with open("tmp/message_log.txt", "a") as file:
+                        file.write(
+                            f"{sender_id} {self.server_id} {"".join([str(bit) for bit in data])}\n"
+                        )
                 print(f"[Server {self.server_id}] Received from {sender_id}: {data}")
                 data: list[int] = hamming_detect_and_fix(data)
                 if original_data != data:

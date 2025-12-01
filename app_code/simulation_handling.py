@@ -4,6 +4,7 @@ from pathlib import Path
 from graph_handling import load_graph, find_path
 from hamming import hamming_encode, hamming_remove_parity_bits
 import threading
+import os
 
 
 def start_servers(
@@ -18,6 +19,8 @@ def start_servers(
 
 
 def gather_sim_info(sim_done: threading.Event) -> list[Any]:
+    if Path("tmp/message_log.txt").is_file():
+        os.remove("tmp/message_log.txt")
     print("\nStart of gathering simulation info.\n")
     message_type: str = input("Enter message type (B - binary, P - plaintext): ")
     if message_type.upper() == "B":
@@ -43,7 +46,7 @@ def gather_sim_info(sim_done: threading.Event) -> list[Any]:
         if starting_point in servers and ending_point in servers:
             break
     path: list[str] = find_path(graph, starting_point, ending_point)
-    return [message, servers, path]
+    return [message, servers, path, graph]
 
 
 def command_listener(servers, sim_done: threading.Event):
@@ -80,6 +83,8 @@ def run_sim(
     path: list[str],
     sim_done: threading.Event,
 ) -> None:
+    with open("tmp/message_log.txt", "a") as file:
+        file.write("".join([str(bit) for bit in message]) + "\n")
     destination_server: str = path[-1]
     print("\nMessage: ", message, "\n", sep="")
     encoded_message = hamming_encode(message)
@@ -93,3 +98,5 @@ def run_sim(
     print("Original message:", message)
     print("Final message:", final_message)
     print("Message transfer success:", message == final_message)
+    with open("tmp/message_log.txt", "a") as file:
+        file.write("".join([str(bit) for bit in final_message]))
