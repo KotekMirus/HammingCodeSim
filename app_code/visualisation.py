@@ -1,28 +1,35 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+from PIL import Image, ImageDraw, ImageFont, ImageFile
 from typing import Any
+import os
 
 
-def load_message_routes(filename: str) -> list[list[str]]:
+def load_message_routes(filename: str) -> tuple[list[list[str]], str, str]:
     message_log: str = ""
     with open(filename, "r") as file:
         message_log = file.read()
     message_routes: list[list[str]] = []
-    for line in message_log.splitlines()[1:-1]:
+    message_log_lines: list[str] = message_log.splitlines()
+    for line in message_log_lines[1:-1]:
         message_routes.append(line.split())
-    return message_routes
+    return message_routes, message_log_lines[0], message_log_lines[-1]
 
 
 def create_graph_image(
-    graph_dict: dict[str, list[str]], messages_routes: list[list[str]]
+    graph_dict: dict[str, list[str]],
+    messages_routes: list[list[str]],
+    first_node: str,
+    last_node: str,
+    filename: str,
 ) -> None:
     graph: nx.Graph = nx.Graph()
     colors: list[str] = []
     for node in graph_dict.keys():
         graph.add_node(node)
-        if node == messages_routes[0][0]:
+        if node == first_node:
             colors.append("plum")
-        elif node == messages_routes[-1][1]:
+        elif node == last_node:
             colors.append("lightgreen")
         else:
             colors.append("lightblue")
@@ -41,5 +48,69 @@ def create_graph_image(
     nx.draw(graph, positions, with_labels=True, node_color=colors)
     edge_labels: dict[tuple, Any] = nx.get_edge_attributes(graph, "label")
     nx.draw_networkx_edge_labels(graph, positions, edge_labels=edge_labels)
-    plt.savefig("tmp/graph.png", format="PNG", dpi=300)
+    plt.savefig(filename, format="PNG", dpi=300)
     plt.close()
+
+
+def cleanup_tmp():
+    for filename in os.listdir("tmp"):
+        path = os.path.join("tmp", filename)
+        try:
+            os.remove(path)
+        except PermissionError:
+            pass
+
+
+def create_graph_gif(
+    graph_dict: dict[str, list[str]],
+    messages_routes: list[list[str]],
+    start_message: str,
+    final_message: str,
+) -> None:
+    cleanup_tmp()
+    first_node: str = messages_routes[0][0]
+    last_node: str = messages_routes[-1][1]
+    image_count: int = len(messages_routes)
+    for i in range(image_count):
+        create_graph_image(
+            graph_dict,
+            messages_routes[: i + 1],
+            first_node,
+            last_node,
+            f"tmp/{i+1}.png",
+        )
+    create_graph_image(
+        graph_dict, messages_routes, first_node, last_node, f"final/final_route.png"
+    )
+    image_example: ImageFile = Image.open("tmp/1.png")
+    width, height = image_example.size
+    font: Any = ImageFont.truetype("resources/Roboto-Medium.ttf", int(height * 0.15))
+    image_with_start_message: Image = Image.new("RGB", (width, height), (255, 255, 255))
+    draw: ImageDraw = ImageDraw.Draw(image_with_start_message)
+    draw.text(
+        (0.05 * width, 0.45 * height),
+        start_message,
+        fill=(0, 0, 0),
+        font=font,
+    )
+    image_with_start_message.save("tmp/0.png")
+    image_with_final_message: Image = Image.new("RGB", (width, height), (255, 255, 255))
+    draw: ImageDraw = ImageDraw.Draw(image_with_final_message)
+    draw.text(
+        (0.05 * width, 0.45 * height),
+        final_message,
+        fill=(0, 0, 0),
+        font=font,
+    )
+    image_with_final_message.save(f"tmp/{image_count+1}.png")
+    all_frames: list[str] = [f"tmp/{i}.png" for i in range(image_count + 2)]
+    gif_frames: list[Any] = [Image.open(png) for png in all_frames]
+    gif_frames[0].save(
+        "final/message_transfer.gif",
+        save_all=True,
+        append_images=gif_frames[1:],
+        duration=1000,
+        loop=0,
+    )
+    for frame in gif_frames:
+        frame.close()
