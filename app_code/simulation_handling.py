@@ -4,15 +4,16 @@ from pathlib import Path
 from graph_handling import load_graph, find_path
 from hamming import hamming_encode, hamming_remove_parity_bits
 import threading
+import copy
 import os
 
 
 def start_servers(
-    servers_number: int, sim_done: threading.Event
+    servers_number: int, graph: dict[str, list[str]], sim_done: threading.Event
 ) -> dict[str, server.Server]:
     servers: dict[str, server.Server] = {}
     for i in range(1, servers_number + 1):
-        s = server.Server(str(i), servers, sim_done)
+        s = server.Server(str(i), servers, graph, sim_done)
         servers[str(i)] = s
         s.start()
     return servers
@@ -41,8 +42,9 @@ def gather_sim_info(sim_done: threading.Event) -> list[Any]:
         if Path(graph_file_path).is_file():
             break
     graph: dict[str, list[str]] = load_graph(graph_file_path)
+    graph_copy: dict[str, list[str]] = copy.deepcopy(graph)
     servers: dict[str, server.Server] = start_servers(
-        max(map(int, graph.keys())), sim_done
+        max(map(int, graph.keys())), graph, sim_done
     )
     while True:
         starting_point: str = input("Enter starting server: ").strip()
@@ -50,7 +52,7 @@ def gather_sim_info(sim_done: threading.Event) -> list[Any]:
         if starting_point in servers and ending_point in servers:
             break
     path: list[str] = find_path(graph, starting_point, ending_point)
-    return [message, servers, path, graph]
+    return [message, servers, path, graph_copy]
 
 
 def command_listener(servers, sim_done: threading.Event):
@@ -67,6 +69,13 @@ def command_listener(servers, sim_done: threading.Event):
                 number_of_bits = int(args[2])
             if server_id in servers:
                 servers[server_id].bitflip(number_of_bits)
+        elif user_input.startswith("crash"):
+            args: list[str] = user_input.split()
+            server_id: str = "0"
+            if len(args) == 2:
+                server_id = args[1]
+            if server_id in servers:
+                servers[server_id].trigger_malfunction()
         elif user_input == "stop":
             sim_done.set()
             end_sim(servers)
@@ -91,7 +100,7 @@ def run_sim(
         file.write("".join([str(bit) for bit in message]) + "\n")
     destination_server: str = path[-1]
     print("\nMessage: ", message, "\n", sep="")
-    encoded_message = hamming_encode(message)
+    encoded_message: list[int] = hamming_encode(message)
     print("Encoded message:", encoded_message)
     print("\nStart of the simulation.\n")
     servers[path[0]].send_data(path[1:], encoded_message)
