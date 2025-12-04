@@ -106,10 +106,15 @@ def run_sim(
     servers[path[0]].send_data(path[1:], encoded_message)
     sim_done.wait()
     final_message: list[int] = servers[destination_server].get_final_message()
-    final_message: list[int] = hamming_remove_parity_bits(final_message)
+    if final_message is not None:
+        final_message: list[int] = hamming_remove_parity_bits(final_message)
     end_sim(servers)
     print("Original message:", message)
     print("Final message:", final_message)
     print("Message transfer success:", message == final_message)
     with open("tmp/message_log.txt", "a") as file:
-        file.write("".join([str(bit) for bit in final_message]))
+        if final_message is not None:
+            file.write("".join([str(bit) for bit in final_message]))
+        else:
+            file.write("None")
+        file.write(f"\n{path[0]} {path[-1]}")

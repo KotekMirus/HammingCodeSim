@@ -5,15 +5,22 @@ from typing import Any
 import os
 
 
-def load_message_routes(filename: str) -> tuple[list[list[str]], str, str]:
+def load_message_routes(filename: str) -> tuple[list[list[str]], str, str, str, str]:
     message_log: str = ""
     with open(filename, "r") as file:
         message_log = file.read()
     message_routes: list[list[str]] = []
     message_log_lines: list[str] = message_log.splitlines()
-    for line in message_log_lines[1:-1]:
+    for line in message_log_lines[1:-2]:
         message_routes.append(line.split())
-    return message_routes, message_log_lines[0], message_log_lines[-1]
+    final_nodes: list[str] = message_log_lines[-1].split()
+    return (
+        message_routes,
+        message_log_lines[0],
+        message_log_lines[-2],
+        final_nodes[0],
+        final_nodes[1],
+    )
 
 
 def create_graph_image(
@@ -66,10 +73,10 @@ def create_graph_gif(
     messages_routes: list[list[str]],
     start_message: str,
     final_message: str,
+    first_node: str,
+    last_node: str,
 ) -> None:
     cleanup_tmp()
-    first_node: str = messages_routes[0][0]
-    last_node: str = messages_routes[-1][1]
     image_count: int = len(messages_routes)
     for i in range(image_count):
         create_graph_image(

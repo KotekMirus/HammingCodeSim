@@ -45,6 +45,7 @@ class Server(threading.Thread):
         if self.server_crashed:
             new_path = find_path(self.graph, self.previous_hop, path[-1])
             if new_path is None:
+                self.final_message = None
                 print(
                     f"[Server {self.server_id}] Failed to find a new path. Transmission failed."
                 )
