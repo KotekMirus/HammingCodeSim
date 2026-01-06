@@ -6,6 +6,19 @@ import os
 
 
 def load_message_routes(filename: str) -> tuple[list[list[str]], str, str, str, str]:
+    """Wczytuje z pliku trasy i stany przesyłania wiadomości. Funkcja wyodrębnia kolejne
+    etapy przesyłania wiadomości pomiędzy serwerami, a także informacje o wiadomości
+    początkowej, końcowej oraz serwerach nadawcy i odbiorcy.
+
+    Args:
+        filename (str): Ścieżka do pliksu zawierającego trasę jaką przebyła wiadomość
+        oraz startową i końcową wersję wiadomości.
+
+    Returns:
+        tuple[list[list[str]], str, str, str, str]: Krotka zawierająca kolejno listę tras
+        przesyłania wiadomości, wiadomość początkową, wiadomość końcową, identyfikator
+        serwera początkowego, identyfikator serwera końcowego.
+    """
     message_log: str = ""
     with open(filename, "r") as file:
         message_log = file.read()
@@ -30,6 +43,21 @@ def create_graph_image(
     last_node: str,
     filename: str,
 ) -> None:
+    """Tworzy obraz PNG grafu (połączonych serwerów) z wiadomością pomiędzy serwerami,
+    które brały udział w jej transferze. Funkcja rysuje graf połączeń serwerów przy
+    użyciu bibliotek NetworkX oraz Matplotlib. Serwery początkowy i końcowy są wyróżnione
+    kolorami fioletowym i zielonym, a na odpowiednich połączeniach węzłów dodane są
+    etykiety zawierające fragmenty wiadomości.
+
+    Args:
+        graph_dict (dict[str, list[str]]): Słownik zawierający wszystkie połączenia między
+        serwerami (ID serwera - lista ID serwerów bezpośrednio podłączonych do tego serwera).
+        messages_routes (list[list[str]]): Lista etapów przesyłu wiadomości (każdy element
+        zawiera ID nadawcy, ID odbiorcy, wiadomość).
+        first_node (str): Identyfikator serwera początkowego.
+        last_node (str): Identyfikator serwera końcowego.
+        filename (str): Nazwa pliku wyjściowego (obrazu PNG).
+    """
     graph: nx.Graph = nx.Graph()
     colors: list[str] = []
     for node in graph_dict.keys():
@@ -59,7 +87,8 @@ def create_graph_image(
     plt.close()
 
 
-def cleanup_tmp():
+def cleanup_tmp() -> None:
+    """Usuwa tymczasowe pliki graficzne z folderu tmp."""
     for filename in os.listdir("tmp"):
         path = os.path.join("tmp", filename)
         try:
@@ -76,6 +105,23 @@ def create_graph_gif(
     first_node: str,
     last_node: str,
 ) -> None:
+    """Generuje animację GIF przedstawiającą transfer wiadomości w sieci serwerów. Na
+    początku funkcji w pętli wywoływana jest funkcja generująca obrazy PNG odpowiadające
+    kolejnym etapom transferu wiadomości. Dalej generowane są obrazy PNG zawierające
+    wiadomość startową i finalną (pierwsza i ostatnia klatka animacji). Na koniec obrazy
+    te są łączone w animację GIF. Dodatkowo funkcja wywołuje generowanie pliku PNG
+    przedstawiającego całkowitą trasę wiadomości.
+
+    Args:
+        graph_dict (dict[str, list[str]]): Słownik zawierający wszystkie połączenia między
+        serwerami (ID serwera - lista ID serwerów bezpośrednio podłączonych do tego serwera).
+        messages_routes (list[list[str]]): Lista etapów przesyłu wiadomości (każdy element
+        zawiera ID nadawcy, ID odbiorcy, wiadomość).
+        start_message (str): Wiadomość początkowa (przed kodowaniem).
+        final_message (str): Wiadomość końcowa (po dekodowaniu).
+        first_node (str): Identyfikator serwera początkowego.
+        last_node (str): Identyfikator serwera końcowego.
+    """
     cleanup_tmp()
     image_count: int = len(messages_routes)
     for i in range(image_count):

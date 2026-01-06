@@ -1,4 +1,15 @@
 def hamming_encode(data_bits: list[int]) -> list[int]:
+    """Koduje dane (listę zer i jedynek reprezentujących bity) przy użyciu kodu Hamminga.
+    Funkcja oblicza liczbę bitów parzystości, rozmieszcza je na odpowiednich pozycjach
+    (potęgi dwójki), a następnie wylicza ich wartości tak, aby umożliwić wykrywanie
+    i korekcję pojedynczego błędu bitowego.
+
+    Args:
+        data_bits (list[int]): Dane w postaci listy zer i jedynek reprezentujących bity.
+
+    Returns:
+        list[int]: Lista bitów zawierająca dane wraz z bitami parzystości.
+    """
     m: int = len(data_bits)
     r: int = 0
     while (2**r) < (m + r + 1):
@@ -25,6 +36,16 @@ def hamming_encode(data_bits: list[int]) -> list[int]:
 
 
 def hamming_find_parity_bits_positions(code: list[int]) -> list[int]:
+    """Wyznacza pozycje bitów parzystości w przekazanym kodzie Hamminga. Na podstawie
+    długości zakodowanej wiadomości obliczana jest liczba bitów parzystości oraz ich
+    pozycje.
+
+    Args:
+        code (list[int]): Dane zakodowane z użyciem kodu Hamminga.
+
+    Returns:
+        list[int]: Lista indeksów bitów parzystości.
+    """
     code_length: int = len(code)
     parity_bits_count: int = 0
     for r in range(code_length):
@@ -36,12 +57,32 @@ def hamming_find_parity_bits_positions(code: list[int]) -> list[int]:
 
 
 def hamming_remove_parity_bits(code: list[int]) -> list[int]:
+    """Usuwa bity parzystości z zakodowanej wiadomości.
+
+    Args:
+        code (list[int]): Dane zakodowane z użyciem kodu Hamminga.
+
+    Returns:
+        list[int]: Lista bitów danych bez bitów parzystości.
+    """
     parity_positions: list[int] = hamming_find_parity_bits_positions(code)
     data_bits: list[int] = [d for i, d in enumerate(code) if i not in parity_positions]
     return data_bits
 
 
 def hamming_detect_and_fix(code: list[int]) -> list[int]:
+    """Wykrywa i koryguje pojedynczy błąd w kodzie Hamminga. Funkcja sprawdza bity
+    parzystości w celu wykrycia błędu. Jeśli zostanie wykryty błąd, jego pozycja jest
+    obliczana na podstawie bitów parzystości, które wykazały jego obecność i zostaje
+    on odwrócony.
+
+    Args:
+        code (list[int]): Dane zakodowane z użyciem kodu Hamminga.
+
+    Returns:
+        list[int]: Poprawiona lista bitów. Jeśli błąd nie został wykryty, są to te same
+        dane, które wprowadzono na wejściu.
+    """
     code_length: int = len(code)
     parity_positions: list[int] = hamming_find_parity_bits_positions(code)
     error_detection_positions: list[int] = []

@@ -8,13 +8,27 @@ from graph_handling import find_path
 
 
 class Server(threading.Thread):
+    """Reprezentuje pojedynczy serwer wchodzący w skład grafu. Dziedziczy po klasie
+    wątku (Thread).
+    """
+
     def __init__(
         self,
         server_id: str,
-        servers: dict[int, Any],
+        servers: dict[str, Any],
         graph: dict[str, list[str]],
         sim_done: threading.Event,
     ):
+        """Inicjalizacja serwera. Przypisanie wartości do zmiennych reprezentujących
+        serwer (jak ID).
+
+        Args:
+            server_id (str): Identyfikator serwera.
+            servers (dict[str, Any]): Słownik zawierający wszystkie pary ID - obiekt serwera.
+            graph (dict[str, list[str]]): Słownik zawierający wszystkie połączenia między
+            serwerami (ID serwera - lista ID serwerów bezpośrednio podłączonych do tego serwera).
+            sim_done (threading.Event): Zdarzenie sygnalizujące zakończenie symulacji.
+        """
         super().__init__()
         self.server_id: str = server_id
         self.servers: dict[str, Server] = servers
@@ -29,6 +43,17 @@ class Server(threading.Thread):
         self.sim_done: threading.Event = sim_done
 
     def send_data(self, path: list[str], data: list[int]) -> None:
+        """Wysyła dane do kolejnego serwera zgodnie z podaną ścieżką (pierwszy element
+        listy). Przed przesłaniem wiadomości dalej, zatrzymuje się na 6-9 sekund, aby dać
+        użytkownikowi czas na zasymulowanie awarii. Po zakończeniu okresu oczekiwania
+        sprawdza czy serwer uległ awarii, a jeśli tak i jeśli serwer ten nie był celem
+        wiadomości, wywołuje wyznaczenie nowej trasy. Jeśli awaria nie nastąpiła,
+        umieszcza wiadomość w skrzynce kolejnego serwera.
+
+        Args:
+            path (list[str]): Lista ID serwerów ułożona w kolejności przepływu wiadomości.
+            data (list[int]): Wiadomość do przesłania w postaci listy zer i jedynek.
+        """
         if not path:
             return
         next_hop: str = path[0]
@@ -56,6 +81,11 @@ class Server(threading.Thread):
         self.servers[next_hop].inbox.put((self.server_id, final_message, path[1:]))
 
     def bitflip(self, number_of_bits: int) -> None:
+        """Zamienia wskazaną liczbę jedynek w wiadomości na zera i odwrotnie.
+
+        Args:
+            number_of_bits (int): Liczba bitów do odwrócenia.
+        """
         with self.lock:
             if self.current_message is None:
                 print(
@@ -76,7 +106,8 @@ class Server(threading.Thread):
                 f"[Server {self.server_id}] Flipped bits at positions {bit_positions}. New message: {self.current_message}"
             )
 
-    def trigger_malfunction(self):
+    def trigger_malfunction(self) -> None:
+        """Symuluje awarię serwera i usuwa go ze słownika reprezentującego graf połączeń."""
         with self.lock:
             if self.current_message is None:
                 print(
@@ -94,9 +125,22 @@ class Server(threading.Thread):
             print(f"[Server {self.server_id}] Server crashed.")
 
     def get_final_message(self) -> list[str]:
+        """Zwraca ostateczną wiadomość.
+
+        Returns:
+            list[str]: Ostateczna wiadomość w postaci listy zer i jedynek.
+        """
         return self.final_message
 
-    def run(self):
+    def run(self) -> None:
+        """Główna pętla serwera obsługująca odbiór i przekazywanie danych. Jeśli w skrzynce
+        (kolejka) znajduje się nowa wiadomość, w pliku message_log.txt tworzony jest nowy
+        wpis o trasie jaką przebyła wiadomość. Dalej następuje wywołanie funkcji
+        odpowiedzialnej za detekcję i korekcję błędów Hamminga w odebranej wiadomości.
+        Jeśli w liście reprezentującej trasę widaomości znajdują się elementy, wiadomość
+        jest przesyłana dalej. Jeśli nie to wiadomość dotarła do celu, a symulacja jest
+        kończona - self.sim_done.set().
+        """
         while self.running:
             try:
                 sender_id, data, remaining_path = self.inbox.get(timeout=0.5)
@@ -108,7 +152,10 @@ class Server(threading.Thread):
                         )
                 self.previous_hop = sender_id
                 print(f"[Server {self.server_id}] Received from {sender_id}: {data}")
-                data: list[int] = hamming_detect_and_fix(data)
+                try:
+                    data: list[int] = hamming_detect_and_fix(data)
+                except:
+                    data = original_data.copy()
                 if original_data != data:
                     print(
                         f"[Server {self.server_id}] Error in data detected and fixed. Fixed data {data}"
@@ -125,5 +172,6 @@ class Server(threading.Thread):
             except queue.Empty:
                 continue
 
-    def stop(self):
+    def stop(self) -> None:
+        """Zatrzymuje działanie wątku serwera."""
         self.running = False

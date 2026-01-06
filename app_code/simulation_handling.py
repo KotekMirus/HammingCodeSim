@@ -11,6 +11,17 @@ import os
 def start_servers(
     servers_number: int, graph: dict[str, list[str]], sim_done: threading.Event
 ) -> dict[str, server.Server]:
+    """Tworzy i uruchamia wątki serwerów.
+
+    Args:
+        servers_number (int): Liczba serwerów do utworzenia.
+        graph (dict[str, list[str]]): Słownik zawierający wszystkie połączenia między
+        serwerami (ID serwera - lista ID serwerów bezpośrednio podłączonych do tego serwera).
+        sim_done (threading.Event): Zdarzenie informujące o zakończeniu symulacji.
+
+    Returns:
+        dict[str, server.Server]: Słownik zawierający wszystkie pary ID - obiekt serwera.
+    """
     servers: dict[str, server.Server] = {}
     for i in range(1, servers_number + 1):
         s = server.Server(str(i), servers, graph, sim_done)
@@ -20,6 +31,19 @@ def start_servers(
 
 
 def gather_sim_info(sim_done: threading.Event) -> list[Any]:
+    """Zbiera od użytkownika wszystkie dane potrzebne do uruchomienia symulacji.
+    Konwertuje wiadomość podaną przez użytkownika na listę intów (0, 1), wywołuje
+    inicjalizację serwerów oraz wywołuje funkcję znajdującą ścieżkę między serwerami
+    podanymi przez użytkownika. Ponadto przygotowuje foldery wykorzystywane przez program.
+
+    Args:
+        sim_done (threading.Event): Zdarzenie sygnalizujące zakończenie symulacji.
+
+    Returns:
+        list[Any]: Lista zawierająca wiadomość w postaci listy zer i jedynek, słownik ze
+        wszystkimi parami ID - obiekt serwera, ścieżkę przesyłu wiadomości, kopię grafu
+        połączeń potrzebną do wizualizacji.
+    """
     tmp_folder_path: Path = Path("tmp")
     tmp_folder_path.mkdir(exist_ok=True)
     final_folder_path: Path = Path("final")
@@ -55,7 +79,19 @@ def gather_sim_info(sim_done: threading.Event) -> list[Any]:
     return [message, servers, path, graph_copy]
 
 
-def command_listener(servers, sim_done: threading.Event):
+def command_listener(
+    servers: dict[str, server.Server], sim_done: threading.Event
+) -> None:
+    """Nasłuchuje poleceń użytkownika w trakcie trwania symulacji. Funkcja działa w osobnym
+    wątku. W każdej iteracji sprawdza czy użytkownik wpisał w konsoli komendę zaczynającą
+    się na bitflip, crash lub stop. Odpowiadają one kolejno wywołaniom wprowadzenia błędu
+    w wiadomości, zasymulowaniu awarii serwera i zakończeniu symulacji.
+
+    Args:
+        servers (dict[str, server.Server]): Słownik zawierający wszystkie pary ID -
+        obiekt serwera.
+        sim_done (threading.Event): Zdarzenie informujące o zakończeniu symulacji.
+    """
     while True:
         user_input: str = input().strip().lower()
         if user_input.startswith("bitflip"):
@@ -83,6 +119,12 @@ def command_listener(servers, sim_done: threading.Event):
 
 
 def end_sim(servers: dict[str, server.Server]) -> None:
+    """Zatrzymuje wszystkie serwery i kończy działanie symulacji.
+
+    Args:
+        servers (dict[str, server.Server]): Słownik zawierający wszystkie pary ID -
+        obiekt serwera.
+    """
     for s in servers.values():
         s.stop()
     for s in servers.values():
@@ -96,6 +138,22 @@ def run_sim(
     path: list[str],
     sim_done: threading.Event,
 ) -> None:
+    """Uruchamia właściwą symulację przesyłania wiadomości. Rozpoczyna od zapisania
+    wiadomości do pliku. Następnie wywołuje funkcję, która koduje wiadomość za pomocą
+    kodu Hamminga. Dalej zakodowana wiadomość zostaje wysłana z serwera startowego.
+    Kiedy transfer wiadomości się zakończy (dotrze do serwera docelowego lub symulacja
+    zostanie przerwana), ostateczna wiadomość jest pobierana z serwera docelowego.
+    Z pomocą odpowiedniej funkcji zostają z niej usunięte bity parzystości i zostaje
+    zapisana do pliku (zapisane zostają również identyfikatory serwerów startowego
+    i końcowego).
+
+    Args:
+        message (list[int]): Wiadomość do przesłania w postaci listy zer i jedynek.
+        servers (dict[str, server.Server]): Słownik zawierający wszystkie pary ID -
+        obiekt serwera.
+        path (list[str]): Lista identyfikatorów serwerów stanowiąca trasę wiadomości.
+        sim_done (threading.Event): Zdarzenie informujące o zakończeniu symulacji.
+    """
     with open("tmp/message_log.txt", "a") as file:
         file.write("".join([str(bit) for bit in message]) + "\n")
     destination_server: str = path[-1]

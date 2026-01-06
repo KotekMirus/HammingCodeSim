@@ -5,6 +5,11 @@ import threading
 
 
 def main() -> None:
+    """Uruchamia wszystkie fazy symulacji. Wywołuje funkcję pobierającą dane symulacji
+    od użytkownika, tworzy wątek nasłuchujący poleceń użytkownika oraz rozpoczyna
+    właściwą symulację przesyłania wiadomości pomiędzy serwerami. Na koniec wywołuje
+    funkcję generującą GIF przedstawiający przebieg symulacji.
+    """
     sim_done: threading.Event = threading.Event()
     sim_info: list[Any] = gather_sim_info(sim_done)
     threading.Thread(
