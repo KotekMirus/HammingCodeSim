@@ -4,7 +4,7 @@ from collections import deque
 def load_graph(filename: str) -> dict[str, list[str]]:
     """Wczytuje opis połączeń serwerów z pliku tekstowego i tworzy słownik reprezentujący
     graf. Plik powinien zawierać opisy połączeń w formacie:
-    'ID serwera - ID serwera sąsiada, ID serwera sąsiada'
+    'ID serwera - ID serwera sąsiada,ID serwera sąsiada'
 
     Args:
         filename (str): Ścieżka do pliku zawierającego opis grafu.
